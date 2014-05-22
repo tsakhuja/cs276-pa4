@@ -1,0 +1,10 @@
+data/*
+bin/**
+.DS_STORE
+build.xml
+df.txt
+l2r.sh
+lib/
+run.sh
+submit.py
+weka.jar
