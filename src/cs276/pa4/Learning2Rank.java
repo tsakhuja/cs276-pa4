@@ -120,11 +120,8 @@ public class Learning2Rank {
 	    /* Populate idfs */
 	    String dfFile = "df.txt";
 	    Map<String,Double> idfs = null;
-	    try {
-	      idfs = Util.loadDFs(dfFile);
-	    } catch(IOException e){
-	      e.printStackTrace();
-	    }
+	    idfs = Util.loadDFs(dfFile);
+
 	    
 	    /* Train & test */
 	    System.err.println("### Running task" + task + "...");		

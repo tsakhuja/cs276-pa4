@@ -1,5 +1,6 @@
 package cs276.pa4;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -7,6 +8,7 @@ import weka.classifiers.Classifier;
 import weka.core.Instances;
 
 public abstract class Learner {
+	String[] TFTYPES = {"url","title","body","header","anchor"};
 	
 	/* Construct training features matrix */
 	public abstract Instances extract_train_features(String train_data_file, String train_rel_file, Map<String,Double> idfs);
@@ -19,4 +21,5 @@ public abstract class Learner {
 	
 	/* Test the model, return ranked queries */
 	public abstract Map<String, List<String>> testing(TestFeatures tf, Classifier model);
+	
 }
