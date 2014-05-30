@@ -10,6 +10,7 @@ import java.util.Map.Entry;
 
 import cs276.pa4.Util;
 import cs276.pa4.Document;
+import cs276.pa4.Query;
 import weka.classifiers.Classifier;
 import weka.classifiers.functions.LinearRegression;
 import weka.core.Attribute;
@@ -18,6 +19,8 @@ import weka.core.Instance;
 import weka.core.Instances;
 
 public class PointwiseLearner extends Learner {
+    
+    double smoothingBodyLength = 600;
 
 	@Override
 	public Instances extract_train_features(String train_data_file,
@@ -53,6 +56,7 @@ public class PointwiseLearner extends Learner {
 			Map<String, Double> queryVec = getQueryVector(query, idfs);
 			for (Document doc : trainData.get(query)) {
 				 Map<String,Map<String,Double>> tfs = doc.getTermFreqs();
+				 normalizeTFs(tfs, doc, query);
 				 double[] instance = new double[6];
 				 int i = 0;
 				 for (String type : TFTYPES) {
@@ -93,6 +97,17 @@ public class PointwiseLearner extends Learner {
 
 		return queryVector;
 	}
+
+	public void normalizeTFs(Map<String,Map<String, Double>> tfs,Document d, Query q)
+	{
+		// Normalize Document Vector
+		for (Map<String, Double> tfMap : tfs.values()) {
+			for (String t : tfMap.keySet()) {
+				tfMap.put(t, tfMap.get(t) / (d.body_length + smoothingBodyLength));
+			}
+		}
+	}
+
 	
 	@Override
 	public Classifier training(Instances dataset) {
