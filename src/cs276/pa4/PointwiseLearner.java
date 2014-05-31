@@ -131,6 +131,7 @@ public class PointwiseLearner extends Learner {
 			Map<String, Double> queryVec = getQueryVector(query, idfs);
 			for (Document doc : testData.get(query)) {
 				 Map<String,Map<String,Double>> tfs = doc.getTermFreqs();
+				 normalizeTFs(tfs, doc, query);
 				 double[] instance = new double[6];
 				 int i = 0;
 				 for (String type : TFTYPES) {
@@ -175,7 +176,7 @@ public class PointwiseLearner extends Learner {
 					Instance i1 = tf.features.get(entry.getValue().get((String) o1));
 					Instance i2 = tf.features.get(entry.getValue().get((String) o2));
 					try {
-						return (int) (model.classifyInstance(i2) - model.classifyInstance(i1));
+						return model.classifyInstance(i2) - model.classifyInstance(i1) > 0 ? 1 : -1;
 					} catch (Exception e) {
 						return 0;
 					}
