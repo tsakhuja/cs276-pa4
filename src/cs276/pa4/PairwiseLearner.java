@@ -136,11 +136,20 @@ public class PairwiseLearner extends Learner {
 							r = i;
 						}
 					}
-					for (int k=0; i < 5; i++){
+					for (int k=0; k < 5; k++){
 						nv[k] = tfidfVectors.get(l).value(k) - tfidfVectors.get(r).value(k);
 					}
 					Instance inst = new DenseInstance(1.0, nv); 
 					dataset.add(inst);
+					
+					// Add additional example from opposite class
+					for (int k=0; k < 5; k++){
+						nv[k] = tfidfVectors.get(r).value(k) - tfidfVectors.get(l).value(k);
+					}
+					nv[5] = nv[5] == 1 ? 0 : 1;
+					Instance inst2 = new DenseInstance(1.0, nv);
+					dataset.add(inst2);
+					
 					count++;
 				}
 			}
