@@ -1,7 +1,6 @@
 package cs276.pa4;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -11,14 +10,12 @@ import java.util.Map.Entry;
 
 import weka.classifiers.Classifier;
 import weka.classifiers.functions.LibSVM;
-import weka.classifiers.functions.LinearRegression;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.SelectedTag;
 import weka.filters.Filter;
-import weka.filters.unsupervised.attribute.NumericToNominal;
 import weka.filters.unsupervised.attribute.Standardize;
 
 public class PairwiseLearner extends Learner {
@@ -49,6 +46,23 @@ public class PairwiseLearner extends Learner {
 		}
 	}
 
+	public ArrayList<Attribute> getAttributes(){
+		ArrayList<Attribute> attributes = new ArrayList<Attribute>();
+		attributes.add(new Attribute("url_w"));
+		attributes.add(new Attribute("title_w"));
+		attributes.add(new Attribute("body_w"));
+		attributes.add(new Attribute("header_w"));
+		attributes.add(new Attribute("anchor_w"));
+		// Create list to hold nominal values
+		List<String> labels = new ArrayList<String>(2); 
+		labels.add("-1"); 
+		labels.add("+1");
+		// Create nominal attribute "position" 
+		Attribute label = new Attribute("label", labels);
+		attributes.add(label);
+		return attributes;
+	}
+	
 	@Override
 	public Instances extract_train_features(String train_data_file,
 			String train_rel_file, Map<String, Double> idfs) {
@@ -69,27 +83,14 @@ public class PairwiseLearner extends Learner {
 		Instances dataset = null;
 
 		/* Build attributes list */
-		ArrayList<Attribute> attributes = new ArrayList<Attribute>();
-		attributes.add(new Attribute("url_w"));
-		attributes.add(new Attribute("title_w"));
-		attributes.add(new Attribute("body_w"));
-		attributes.add(new Attribute("header_w"));
-		attributes.add(new Attribute("anchor_w"));
-		// Create list to hold nominal values
-		List<String> labels = new ArrayList<String>(2); 
-		labels.add("1"); 
-		labels.add("-1");
-		// Create nominal attribute "position" 
-		Attribute label = new Attribute("label", labels);
-		attributes.add(label);
-		dataset = new Instances("train_dataset", attributes, 0);
+		dataset = new Instances("train_dataset", getAttributes(), 0);
 
 		/* Add data */
 		int count = 0; //Alternate classes
 		for (Query query : trainData.keySet()) {
 			Map<String, Double> queryVec = getQueryVector(query, idfs);
 			//get all TFIDF docquery vectors
-			Instances tfidfVectors = new Instances("train_dataset", attributes, 0);
+			Instances tfidfVectors = new Instances("train_dataset", getAttributes(), 0);
 			for (Document doc : trainData.get(query)) {
 				Map<String,Map<String,Double>> tfs = doc.getTermFreqs();
 				normalizeTFs(tfs, doc, query);
@@ -112,19 +113,17 @@ public class PairwiseLearner extends Learner {
 				tfidfVectors.add(inst);
 			}
 			//Normalize tfidf vectors
-			tfidfVectors = normalize(tfidfVectors);
+			tfidfVectors = standardize(tfidfVectors);
 			//Get pairwise vectors
 			for (int i=0; i < tfidfVectors.size()-1; i++){
 				for (int j=i+1; j < tfidfVectors.size(); j++){
 					if (tfidfVectors.get(i).value(5) == tfidfVectors.get(j).value(5)) continue;
 					//Build difference vector
 					double[] nv = new double[6];
-					String c;
 					int l = i,r = j;//Alternate between class 1 and -1
 					if (count %2 == 0){
 						//Use class 1
-						nv[5] = dataset.attribute(5).indexOfValue("1");
-						c = "1";
+						nv[5] = dataset.attribute(5).indexOfValue("+1");
 						if (tfidfVectors.get(i).value(5) - tfidfVectors.get(j).value(5) < 0){
 							l = j;
 							r = i;
@@ -152,7 +151,7 @@ public class PairwiseLearner extends Learner {
 		return dataset;
 	}
 
-	protected Instances normalize(Instances X){
+	protected Instances standardize(Instances X){
 		Instances X2 = null;
 		try {
 			Standardize filter = new Standardize();
@@ -196,20 +195,7 @@ public class PairwiseLearner extends Learner {
 		Map<String, Map<String, Integer>> indexMap = new HashMap<String, Map<String, Integer>>();
 
 		/* Build attributes list */
-		ArrayList<Attribute> attributes = new ArrayList<Attribute>();
-		attributes.add(new Attribute("url_w"));
-		attributes.add(new Attribute("title_w"));
-		attributes.add(new Attribute("body_w"));
-		attributes.add(new Attribute("header_w"));
-		attributes.add(new Attribute("anchor_w"));
-		// Create list to hold nominal values
-		List<String> labels = new ArrayList<String>(2); 
-		labels.add("1"); 
-		labels.add("-1");
-		// Create nominal attribute "position" 
-		Attribute label = new Attribute("label", labels);
-		attributes.add(label);
-		features = new Instances("train_dataset", attributes, 0);
+		features = new Instances("test_dataset", getAttributes(), 0);
 
 		/* Add data */
 		for (Query query : testData.keySet()) {
@@ -236,7 +222,8 @@ public class PairwiseLearner extends Learner {
 		}
 
 		/* Set last attribute as target */
-		features = normalize(features);
+		features.setClassIndex(5);
+		features = standardize(features);
 		tf.features = features;
 		tf.index_map = indexMap;
 
@@ -260,9 +247,18 @@ public class PairwiseLearner extends Learner {
 				public int compare(Object o1, Object o2) {
 					Instance i1 = tf.features.get(entry.getValue().get((String) o1));
 					Instance i2 = tf.features.get(entry.getValue().get((String) o2));
+					double[] instance = new double[6];
+					for (int i=0; i<5; i++){
+						instance[i] = i1.value(i) - i2.value(i);
+					}
+					Instance inst = new DenseInstance(1.0,instance);
+					Instances c = new Instances("comp_dataset", getAttributes(), 0);
+					c.setClassIndex(5);
+					inst.setDataset(c);
 					try {
-						return (int) (model.classifyInstance(i2) - model.classifyInstance(i1));
+						return model.classifyInstance(inst) == 0.0 ? 1 : -1;
 					} catch (Exception e) {
+						e.printStackTrace();
 						return 0;
 					}
 				}

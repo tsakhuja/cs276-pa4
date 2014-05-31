@@ -178,6 +178,7 @@ public class PointwiseLearner extends Learner {
 					try {
 						return model.classifyInstance(i2) - model.classifyInstance(i1) > 0 ? 1 : -1;
 					} catch (Exception e) {
+						e.printStackTrace();
 						return 0;
 					}
 				}
