@@ -33,7 +33,7 @@ public class Document {
 	
 	// URL
 	String[] parseUrl() {
-		return this.url.toLowerCase().split("\\W");
+		return this.url.toLowerCase().split("[:_./]+");
 	}
 	// Title
 	String[] parseTitle(){
@@ -155,7 +155,7 @@ public class Document {
 		// Add sublinear scaling
 		for (String type : TFTYPES) {
 			for (String s : tfs.get(type).keySet()) {
-				tfs.get(type).put(s, 1 + Math.log(tfs.get(type).get(s)));
+				tfs.get(type).put(s, 1.0 + Math.log(tfs.get(type).get(s)));
 			}
 		}
 		
