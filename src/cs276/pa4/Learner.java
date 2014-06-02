@@ -10,6 +10,11 @@ import weka.core.Instances;
 public abstract class Learner {
 	String[] TFTYPES = {"url","title","body","header","anchor"};
     double smoothingBodyLength = 600;
+    protected boolean usesBm25;
+    protected boolean usesSmallestWindow;
+    protected boolean usesPageRank;
+    protected BM25Scorer bm25Scorer;
+    protected SmallestWindowScorer smallestWindowScorer;
 
 	/* Construct training features matrix */
 	public abstract Instances extract_train_features(String train_data_file, String train_rel_file, Map<String,Double> idfs);

@@ -20,13 +20,17 @@ import weka.filters.unsupervised.attribute.Standardize;
 
 public class PairwiseLearner extends Learner {
 	private LibSVM model;
-	public PairwiseLearner(boolean isLinearKernel){
+
+	public PairwiseLearner(boolean isLinearKernel, boolean bm25, boolean window, boolean pageRank){
 		try{
 			model = new LibSVM();
 		} catch (Exception e){
 			e.printStackTrace();
 		}
 
+		this.usesBm25 = bm25;
+		this.usesPageRank = pageRank;
+		this.usesSmallestWindow = window;
 		if(isLinearKernel){
 			model.setKernelType(new SelectedTag(LibSVM.KERNELTYPE_LINEAR, LibSVM.TAGS_KERNELTYPE));
 		}
@@ -53,6 +57,15 @@ public class PairwiseLearner extends Learner {
 		attributes.add(new Attribute("body_w"));
 		attributes.add(new Attribute("header_w"));
 		attributes.add(new Attribute("anchor_w"));
+		if (this.usesBm25) {
+			attributes.add(new Attribute("bm25_w"));
+		}
+		if (this.usesPageRank) {
+			attributes.add(new Attribute("pagerank_w"));
+		}
+		if (this.usesSmallestWindow) {
+			attributes.add(new Attribute("window_w"));
+		}
 		// Create list to hold nominal values
 		List<String> labels = new ArrayList<String>(2); 
 		labels.add("-1"); 
@@ -78,6 +91,8 @@ public class PairwiseLearner extends Learner {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		this.bm25Scorer = new BM25Scorer(idfs, trainData);
+		this.smallestWindowScorer = new SmallestWindowScorer(idfs, trainData);
 
 		/* Construct dataset */
 		Instances dataset = null;
@@ -94,7 +109,7 @@ public class PairwiseLearner extends Learner {
 			for (Document doc : trainData.get(query)) {
 				Map<String,Map<String,Double>> tfs = doc.getTermFreqs();
 				normalizeTFs(tfs, doc, query);
-				double[] instance = new double[6];
+				double[] instance = new double[tfidfVectors.numAttributes()];
 				int j = 0;
 				for (String type : TFTYPES) {
 					for (String s : queryVec.keySet()) {
@@ -104,11 +119,20 @@ public class PairwiseLearner extends Learner {
 					}
 					j++; /* Advance to next zone */
 				}
+				if (this.usesBm25) {
+					 instance[j++] = this.bm25Scorer.getSimScore(doc, query);
+				 }
+				 if (this.usesPageRank) {
+					 instance[j++] = doc.page_rank;
+				 }
+				 if (this.usesSmallestWindow) {
+					 instance[j++] = this.smallestWindowScorer.getSimScore(doc, query);
+				 }
 				double relScore = 0.0;
 				if (relData.get(query.query) != null && relData.get(query.query).get(doc.url) != null) {
 					relScore = relData.get(query.query).get(doc.url);
 				}
-				instance[5] = relScore;
+				instance[tfidfVectors.numAttributes() - 1] = relScore;
 				Instance inst = new DenseInstance(1.0, instance); 
 				tfidfVectors.add(inst);
 			}
@@ -117,36 +141,36 @@ public class PairwiseLearner extends Learner {
 			//Get pairwise vectors
 			for (int i=0; i < tfidfVectors.size()-1; i++){
 				for (int j=i+1; j < tfidfVectors.size(); j++){
-					if (tfidfVectors.get(i).value(5) == tfidfVectors.get(j).value(5)) continue;
+					if (tfidfVectors.get(i).value(tfidfVectors.numAttributes() - 1) == tfidfVectors.get(j).value(tfidfVectors.numAttributes() - 1)) continue;
 					//Build difference vector
-					double[] nv = new double[6];
+					double[] nv = new double[tfidfVectors.numAttributes()];
 					int l = i,r = j;//Alternate between class 1 and -1
 					if (count %2 == 0){
 						//Use class 1
-						nv[5] = dataset.attribute(5).indexOfValue("+1");
-						if (tfidfVectors.get(i).value(5) - tfidfVectors.get(j).value(5) < 0){
+						nv[tfidfVectors.numAttributes() - 1] = dataset.attribute(tfidfVectors.numAttributes() - 1).indexOfValue("+1");
+						if (tfidfVectors.get(i).value(tfidfVectors.numAttributes() - 1) - tfidfVectors.get(j).value(tfidfVectors.numAttributes() - 1) < 0){
 							l = j;
 							r = i;
 						}
 					} else {
 						//Use class -1
-						nv[5] = dataset.attribute(5).indexOfValue("-1");
-						if (tfidfVectors.get(i).value(5) - tfidfVectors.get(j).value(5) > 0){
+						nv[tfidfVectors.numAttributes() - 1] = dataset.attribute(tfidfVectors.numAttributes() - 1).indexOfValue("-1");
+						if (tfidfVectors.get(i).value(tfidfVectors.numAttributes() - 1) - tfidfVectors.get(j).value(tfidfVectors.numAttributes() - 1) > 0){
 							l = j;
 							r = i;
 						}
 					}
-					for (int k=0; k < 5; k++){
+					for (int k=0; k < tfidfVectors.numAttributes(); k++){
 						nv[k] = tfidfVectors.get(l).value(k) - tfidfVectors.get(r).value(k);
 					}
 					Instance inst = new DenseInstance(1.0, nv); 
 					dataset.add(inst);
 					
 					// Add additional example from opposite class
-					for (int k=0; k < 5; k++){
+					for (int k=0; k < tfidfVectors.numAttributes() - 1; k++){
 						nv[k] = tfidfVectors.get(r).value(k) - tfidfVectors.get(l).value(k);
 					}
-					nv[5] = nv[5] == 1 ? 0 : 1;
+					nv[tfidfVectors.numAttributes() - 1] = nv[tfidfVectors.numAttributes() - 1] == 1 ? 0 : 1;
 					Instance inst2 = new DenseInstance(1.0, nv);
 					dataset.add(inst2);
 					
@@ -196,6 +220,9 @@ public class PairwiseLearner extends Learner {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		this.bm25Scorer = new BM25Scorer(idfs, testData);
+		this.smallestWindowScorer = new SmallestWindowScorer(idfs,testData);
 
 		/* Construct dataset */
 		Instances features = null;
@@ -213,7 +240,7 @@ public class PairwiseLearner extends Learner {
 			Map<String, Double> queryVec = getQueryVector(query, idfs);
 			for (Document doc : testData.get(query)) {
 				Map<String,Map<String,Double>> tfs = doc.getTermFreqs();
-				double[] instance = new double[6];
+				double[] instance = new double[features.numAttributes()];
 				int i = 0;
 				for (String type : TFTYPES) {
 					for (String s : queryVec.keySet()) {
@@ -223,7 +250,16 @@ public class PairwiseLearner extends Learner {
 					}
 					i++; /* Advance to next zone */
 				}
-				instance[5] = 0.0;
+				if (this.usesBm25) {
+					 instance[i++] = this.bm25Scorer.getSimScore(doc, query);
+				 }
+				 if (this.usesPageRank) {
+					 instance[i++] = doc.page_rank;
+				 }
+				 if (this.usesSmallestWindow) {
+					 instance[i++] = this.smallestWindowScorer.getSimScore(doc, query);
+				 }
+				instance[features.numAttributes() - 1] = 0.0;
 				Instance inst = new DenseInstance(1.0, instance); 
 				features.add(inst);
 				docIndexMap.put(doc.url, index++);
@@ -231,7 +267,7 @@ public class PairwiseLearner extends Learner {
 		}
 
 		/* Set last attribute as target */
-		features.setClassIndex(5);
+		features.setClassIndex(features.numAttributes() - 1);
 		features = standardize(features);
 		tf.features = features;
 		tf.index_map = indexMap;

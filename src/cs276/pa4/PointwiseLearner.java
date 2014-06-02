@@ -19,11 +19,24 @@ import weka.core.Instance;
 import weka.core.Instances;
 
 public class PointwiseLearner extends Learner {
+	
+	/**
+	 * Constructor
+	 * @param bm25 - use bm25 as a feature
+	 * @param window - use smallest window as a feature
+	 * @param pageRank - use pagerank as a feature
+	 */
+	public PointwiseLearner(boolean bm25, boolean window, boolean pageRank) {
+		this.usesBm25 = bm25;
+		this.usesPageRank = pageRank;
+		this.usesSmallestWindow = window;
+	}
     
 	@Override
 	public Instances extract_train_features(String train_data_file,
 			String train_rel_file, Map<String, Double> idfs) {
 		
+
 		Map<Query, List<Document>> trainData = null;
 		Map<String, Map<String, Double>> relData = null;
 		
@@ -31,6 +44,8 @@ public class PointwiseLearner extends Learner {
 		try {
 			trainData = Util.loadTrainData(train_data_file);
 			relData = Util.loadRelData(train_rel_file);
+			this.bm25Scorer = new BM25Scorer(idfs, trainData);
+			this.smallestWindowScorer = new SmallestWindowScorer(idfs, trainData);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -46,6 +61,15 @@ public class PointwiseLearner extends Learner {
 		attributes.add(new Attribute("body_w"));
 		attributes.add(new Attribute("header_w"));
 		attributes.add(new Attribute("anchor_w"));
+		if (this.usesBm25) {
+			attributes.add(new Attribute("bm25_w"));
+		}
+		if (this.usesPageRank) {
+			attributes.add(new Attribute("pagerank_w"));
+		}
+		if (this.usesSmallestWindow) {
+			attributes.add(new Attribute("window_w"));
+		}
 		attributes.add(new Attribute("relevance_score"));
 		dataset = new Instances("train_dataset", attributes, 0);
 		
@@ -55,7 +79,7 @@ public class PointwiseLearner extends Learner {
 			for (Document doc : trainData.get(query)) {
 				 Map<String,Map<String,Double>> tfs = doc.getTermFreqs();
 				 normalizeTFs(tfs, doc, query);
-				 double[] instance = new double[6];
+				 double[] instance = new double[attributes.size()];
 				 int i = 0;
 				 for (String type : TFTYPES) {
 					 for (String s : queryVec.keySet()) {
@@ -66,10 +90,20 @@ public class PointwiseLearner extends Learner {
 					 i++; /* Advance to next zone */
 				 }
 				 double relScore = 0.0;
+
+				 if (this.usesBm25) {
+					 instance[i++] = this.bm25Scorer.getSimScore(doc, query);
+				 }
+				 if (this.usesPageRank) {
+					 instance[i++] = doc.page_rank;
+				 }
+				 if (this.usesSmallestWindow) {
+					 instance[i++] = this.smallestWindowScorer.getSimScore(doc, query);
+				 }
 				 if (relData.get(query.query) != null && relData.get(query.query).get(doc.url) != null) {
 					 relScore = relData.get(query.query).get(doc.url);
 				 }
-				 instance[5] = relScore;
+				 instance[attributes.size() - 1] = relScore;
 				 Instance inst = new DenseInstance(1.0, instance); 
 				 dataset.add(inst);
 			}
@@ -103,6 +137,8 @@ public class PointwiseLearner extends Learner {
 		/* Load training data */
 		try {
 			testData = Util.loadTrainData(test_data_file);
+			this.bm25Scorer = new BM25Scorer(idfs, testData);
+			this.smallestWindowScorer = new SmallestWindowScorer(idfs, testData);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -122,6 +158,15 @@ public class PointwiseLearner extends Learner {
 		attributes.add(new Attribute("header_w"));
 		attributes.add(new Attribute("anchor_w"));
 		attributes.add(new Attribute("relevance_score"));
+		if (this.usesBm25) {
+			attributes.add(new Attribute("bm25_w"));
+		}
+		if (this.usesPageRank) {
+			attributes.add(new Attribute("pagerank_w"));
+		}
+		if (this.usesSmallestWindow) {
+			attributes.add(new Attribute("window_w"));
+		}
 		features = new Instances("test_dataset", attributes, 0);
 		
 		/* Add data */
@@ -132,7 +177,7 @@ public class PointwiseLearner extends Learner {
 			for (Document doc : testData.get(query)) {
 				 Map<String,Map<String,Double>> tfs = doc.getTermFreqs();
 				 normalizeTFs(tfs, doc, query);
-				 double[] instance = new double[6];
+				 double[] instance = new double[attributes.size()];
 				 int i = 0;
 				 for (String type : TFTYPES) {
 					 for (String s : queryVec.keySet()) {
@@ -142,7 +187,16 @@ public class PointwiseLearner extends Learner {
 					 }
 					 i++; /* Advance to next zone */
 				 }
-				 instance[5] = 0.0;
+				 if (this.usesBm25) {
+					 instance[i++] = this.bm25Scorer.getSimScore(doc, query);
+				 }
+				 if (this.usesPageRank) {
+					 instance[i++] = doc.page_rank;
+				 }
+				 if (this.usesSmallestWindow) {
+					 instance[i++] = this.smallestWindowScorer.getSimScore(doc, query);
+				 }
+				 instance[i] = 0.0;
 				 Instance inst = new DenseInstance(1.0, instance); 
 				 features.add(inst);
 				 docIndexMap.put(doc.url, index++);
