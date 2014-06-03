@@ -27,7 +27,9 @@ public class Learning2Rank {
 		  boolean isLinearKernel = true;
 			learner = new PairwiseLearner(8,2,isLinearKernel);
 		} else if (task == 3) {
-			learner = new PairwiseLearner(true,false, false, false);
+//			learner = new PairwiseLearner(true,false, false, false);
+			learner = new PointwiseLearner(false, false, true);
+
 
 			/* 
 			 * @TODO: Your code here, add more features 
@@ -66,7 +68,7 @@ public class Learning2Rank {
 				/* 
 				 * @TODO: Your code here, add more features 
 				 * */
-				learner = new PairwiseLearner(true,false, false, false);
+				learner = new PointwiseLearner(false, false, true);
 
 				System.err.println("Task 3");
 				

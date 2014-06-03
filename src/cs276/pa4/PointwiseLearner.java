@@ -61,6 +61,9 @@ public class PointwiseLearner extends Learner {
 		attributes.add(new Attribute("body_w"));
 		attributes.add(new Attribute("header_w"));
 		attributes.add(new Attribute("anchor_w"));
+		attributes.add(new Attribute("word_doc"));
+		attributes.add(new Attribute("alumni"));
+
 		if (this.usesBm25) {
 			attributes.add(new Attribute("bm25_w"));
 		}
@@ -89,6 +92,11 @@ public class PointwiseLearner extends Learner {
 					 }
 					 i++; /* Advance to next zone */
 				 }
+				 boolean containsWordDoc = doc.url.matches(".*[.](doc|ppt|xls)"); 
+				 instance[i++] = containsWordDoc ? 1.0 : 0.0;
+				 boolean containsAlumni = doc.url.matches(".*[./](news).*"); 
+				 instance[i++] = containsAlumni ? 1.0 : 0.0;
+				 
 				 double relScore = 0.0;
 
 				 if (this.usesBm25) {
@@ -157,6 +165,9 @@ public class PointwiseLearner extends Learner {
 		attributes.add(new Attribute("body_w"));
 		attributes.add(new Attribute("header_w"));
 		attributes.add(new Attribute("anchor_w"));
+		attributes.add(new Attribute("word_doc"));
+		attributes.add(new Attribute("alumni"));
+
 		attributes.add(new Attribute("relevance_score"));
 		if (this.usesBm25) {
 			attributes.add(new Attribute("bm25_w"));
@@ -187,6 +198,11 @@ public class PointwiseLearner extends Learner {
 					 }
 					 i++; /* Advance to next zone */
 				 }
+				 boolean containsWordDoc = doc.url.matches(".*[.](doc|ppt|xls)"); 
+				 instance[i++] = containsWordDoc ? 1.0 : 0.0;
+				 boolean containsAlumni = doc.url.matches(".*[./](news).*"); 
+				 instance[i++] = containsAlumni ? 1.0 : 0.0;
+				 
 				 if (this.usesBm25) {
 					 instance[i++] = this.bm25Scorer.getSimScore(doc, query);
 				 }
