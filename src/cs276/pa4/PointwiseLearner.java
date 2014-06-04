@@ -168,7 +168,6 @@ public class PointwiseLearner extends Learner {
 		attributes.add(new Attribute("word_doc"));
 		attributes.add(new Attribute("alumni"));
 
-		attributes.add(new Attribute("relevance_score"));
 		if (this.usesBm25) {
 			attributes.add(new Attribute("bm25_w"));
 		}
@@ -178,6 +177,7 @@ public class PointwiseLearner extends Learner {
 		if (this.usesSmallestWindow) {
 			attributes.add(new Attribute("window_w"));
 		}
+		attributes.add(new Attribute("relevance_score"));
 		features = new Instances("test_dataset", attributes, 0);
 		
 		/* Add data */

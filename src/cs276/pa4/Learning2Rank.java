@@ -14,7 +14,12 @@ import weka.classifiers.Classifier;
 import weka.core.Instances;
 
 public class Learning2Rank {
-
+	static boolean isLinearKernel = true;
+	static boolean bm25 = false;
+	static boolean pagerank = false;
+	static boolean smallestwindow = false;
+	static double C = Math.pow(2,-3);
+	static double gamma = Math.pow(2,-5);
 	
 	public static Classifier train(String train_data_file, String train_rel_file, int task, Map<String,Double> idfs) {
 	    System.err.println("## Training with feature_file =" + train_data_file + ", rel_file = " + train_rel_file + " ... \n");
@@ -24,11 +29,10 @@ public class Learning2Rank {
  		if (task == 1) {
 			learner = new PointwiseLearner(false, false, false);
 		} else if (task == 2) {
-		  boolean isLinearKernel = true;
-			learner = new PairwiseLearner(8,2,isLinearKernel);
+			learner = new PairwiseLearner(C,gamma,isLinearKernel);
 		} else if (task == 3) {
-//			learner = new PairwiseLearner(true,false, false, false);
-			learner = new PointwiseLearner(false, false, true);
+			learner = new PairwiseLearner(isLinearKernel, bm25, pagerank, smallestwindow);
+			//learner = new PointwiseLearner(false, false, true);
 
 
 			/* 
@@ -61,15 +65,9 @@ public class Learning2Rank {
 	 		if (task == 1) {
 				learner = new PointwiseLearner(false, false, false);
 			} else if (task == 2) {
-			  boolean isLinearKernel = true;
-				learner = new PairwiseLearner(isLinearKernel, false, false, false);
+				learner = new PairwiseLearner(C,gamma,isLinearKernel);
 			} else if (task == 3) {
-				
-				/* 
-				 * @TODO: Your code here, add more features 
-				 * */
-				learner = new PointwiseLearner(false, false, true);
-
+				learner = new PairwiseLearner(isLinearKernel, bm25, pagerank, smallestwindow);
 				System.err.println("Task 3");
 				
 			} else if (task == 4) {

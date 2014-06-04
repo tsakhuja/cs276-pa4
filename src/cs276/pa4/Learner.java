@@ -10,9 +10,9 @@ import weka.core.Instances;
 public abstract class Learner {
 	String[] TFTYPES = {"url","title","body","header","anchor"};
     double smoothingBodyLength = 600;
-    protected boolean usesBm25;
-    protected boolean usesSmallestWindow;
-    protected boolean usesPageRank;
+    protected boolean usesBm25 = false;
+    protected boolean usesSmallestWindow = false;
+    protected boolean usesPageRank = false;
     protected BM25Scorer bm25Scorer;
     protected SmallestWindowScorer smallestWindowScorer;
 

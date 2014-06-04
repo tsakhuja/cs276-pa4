@@ -57,6 +57,9 @@ public class PairwiseLearner extends Learner {
 		attributes.add(new Attribute("body_w"));
 		attributes.add(new Attribute("header_w"));
 		attributes.add(new Attribute("anchor_w"));
+		attributes.add(new Attribute("word_doc"));
+		attributes.add(new Attribute("alumni"));
+
 		if (this.usesBm25) {
 			attributes.add(new Attribute("bm25_w"));
 		}
@@ -119,15 +122,19 @@ public class PairwiseLearner extends Learner {
 					}
 					j++; /* Advance to next zone */
 				}
+				boolean containsWordDoc = doc.url.matches(".*[.](doc|ppt|xls)"); 
+				instance[j++] = containsWordDoc ? 1.0 : 0.0;
+				boolean containsAlumni = doc.url.matches(".*[./](news).*"); 
+				instance[j++] = containsAlumni ? 1.0 : 0.0;
 				if (this.usesBm25) {
-					 instance[j++] = this.bm25Scorer.getSimScore(doc, query);
-				 }
-				 if (this.usesPageRank) {
-					 instance[j++] = doc.page_rank;
-				 }
-				 if (this.usesSmallestWindow) {
-					 instance[j++] = this.smallestWindowScorer.getSimScore(doc, query);
-				 }
+					instance[j++] = this.bm25Scorer.getSimScore(doc, query);
+				}
+				if (this.usesPageRank) {
+					instance[j++] = doc.page_rank;
+				}
+				if (this.usesSmallestWindow) {
+					instance[j++] = this.smallestWindowScorer.getSimScore(doc, query);
+				}
 				double relScore = 0.0;
 				if (relData.get(query.query) != null && relData.get(query.query).get(doc.url) != null) {
 					relScore = relData.get(query.query).get(doc.url);
@@ -143,35 +150,33 @@ public class PairwiseLearner extends Learner {
 				for (int j=i+1; j < tfidfVectors.size(); j++){
 					if (tfidfVectors.get(i).value(tfidfVectors.numAttributes() - 1) == tfidfVectors.get(j).value(tfidfVectors.numAttributes() - 1)) continue;
 					//Build difference vector
-					double[] nv = new double[tfidfVectors.numAttributes()];
+					double[] nv1 = new double[tfidfVectors.numAttributes()];
+					double[] nv2 = new double[tfidfVectors.numAttributes()];
 					int l = i,r = j;//Alternate between class 1 and -1
 					if (count %2 == 0){
 						//Use class 1
-						nv[tfidfVectors.numAttributes() - 1] = dataset.attribute(tfidfVectors.numAttributes() - 1).indexOfValue("+1");
+						nv1[tfidfVectors.numAttributes() - 1] = dataset.attribute(tfidfVectors.numAttributes() - 1).indexOfValue("+1");
+						nv2[tfidfVectors.numAttributes() - 1] = dataset.attribute(tfidfVectors.numAttributes() - 1).indexOfValue("-1");
 						if (tfidfVectors.get(i).value(tfidfVectors.numAttributes() - 1) - tfidfVectors.get(j).value(tfidfVectors.numAttributes() - 1) < 0){
 							l = j;
 							r = i;
 						}
 					} else {
 						//Use class -1
-						nv[tfidfVectors.numAttributes() - 1] = dataset.attribute(tfidfVectors.numAttributes() - 1).indexOfValue("-1");
+						nv1[tfidfVectors.numAttributes() - 1] = dataset.attribute(tfidfVectors.numAttributes() - 1).indexOfValue("-1");
+						nv2[tfidfVectors.numAttributes() - 1] = dataset.attribute(tfidfVectors.numAttributes() - 1).indexOfValue("+1");
 						if (tfidfVectors.get(i).value(tfidfVectors.numAttributes() - 1) - tfidfVectors.get(j).value(tfidfVectors.numAttributes() - 1) > 0){
 							l = j;
 							r = i;
 						}
 					}
-					for (int k=0; k < tfidfVectors.numAttributes(); k++){
-						nv[k] = tfidfVectors.get(l).value(k) - tfidfVectors.get(r).value(k);
+					for (int k=0; k < tfidfVectors.numAttributes()-1; k++){
+						nv1[k] = tfidfVectors.get(l).value(k) - tfidfVectors.get(r).value(k);
+						nv2[k] = tfidfVectors.get(r).value(k) - tfidfVectors.get(l).value(k);
 					}
-					Instance inst = new DenseInstance(1.0, nv); 
+					Instance inst = new DenseInstance(1.0, nv1); 
 					dataset.add(inst);
-					
-					// Add additional example from opposite class
-					for (int k=0; k < tfidfVectors.numAttributes() - 1; k++){
-						nv[k] = tfidfVectors.get(r).value(k) - tfidfVectors.get(l).value(k);
-					}
-					nv[tfidfVectors.numAttributes() - 1] = nv[tfidfVectors.numAttributes() - 1] == 1 ? 0 : 1;
-					Instance inst2 = new DenseInstance(1.0, nv);
+					Instance inst2 = new DenseInstance(1.0, nv2); 
 					dataset.add(inst2);
 					
 					count++;
@@ -250,6 +255,10 @@ public class PairwiseLearner extends Learner {
 					}
 					i++; /* Advance to next zone */
 				}
+				boolean containsWordDoc = doc.url.matches(".*[.](doc|ppt|xls)"); 
+				instance[i++] = containsWordDoc ? 1.0 : 0.0;
+				boolean containsAlumni = doc.url.matches(".*[./](news).*"); 
+				instance[i++] = containsAlumni ? 1.0 : 0.0;
 				if (this.usesBm25) {
 					 instance[i++] = this.bm25Scorer.getSimScore(doc, query);
 				 }
@@ -292,13 +301,13 @@ public class PairwiseLearner extends Learner {
 				public int compare(Object o1, Object o2) {
 					Instance i1 = tf.features.get(entry.getValue().get((String) o1));
 					Instance i2 = tf.features.get(entry.getValue().get((String) o2));
-					double[] instance = new double[6];
-					for (int i=0; i<5; i++){
+					double[] instance = new double[tf.features.numAttributes()];
+					for (int i=0; i < tf.features.numAttributes()-1; i++){
 						instance[i] = i1.value(i) - i2.value(i);
 					}
 					Instance inst = new DenseInstance(1.0,instance);
 					Instances c = new Instances("comp_dataset", getAttributes(), 0);
-					c.setClassIndex(5);
+					c.setClassIndex(c.numAttributes()-1);
 					inst.setDataset(c);
 					try {
 						return model.classifyInstance(inst) == 0.0 ? 1 : -1;
