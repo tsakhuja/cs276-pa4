@@ -18,9 +18,11 @@ public class Learning2Rank {
 	static boolean isLinearKernel3 = false;
 	static boolean bm25 = true;
 	static boolean pagerank = true;
-	static boolean smallestwindow = true;
-	static double C = Math.pow(2,-3);
-	static double gamma = Math.pow(2,-5);
+	static boolean smallestwindow = false;
+	static double C2 = Math.pow(2,-3);
+	static double gamma2 = Math.pow(2,-5);
+	static double C3 = Math.pow(2,-3);
+	static double gamma3 = Math.pow(2,-5);
 	
 	public static Classifier train(String train_data_file, String train_rel_file, int task, Map<String,Double> idfs) {
 	    System.err.println("## Training with feature_file =" + train_data_file + ", rel_file = " + train_rel_file + " ... \n");
@@ -30,9 +32,9 @@ public class Learning2Rank {
  		if (task == 1) {
 			learner = new PointwiseLearner(false, false, false);
 		} else if (task == 2) {
-			learner = new PairwiseLearner(C,gamma,isLinearKernel2);
+			learner = new PairwiseLearner(C2,gamma2,isLinearKernel2);
 		} else if (task == 3) {
-			learner = new PairwiseLearner(isLinearKernel3, bm25, pagerank, smallestwindow);
+			learner = new PairwiseLearner(C3,gamma3, isLinearKernel3, bm25, pagerank, smallestwindow);
 			//learner = new PointwiseLearner(false, false, true);
 
 
@@ -66,9 +68,9 @@ public class Learning2Rank {
 	 		if (task == 1) {
 				learner = new PointwiseLearner(false, false, false);
 			} else if (task == 2) {
-				learner = new PairwiseLearner(C,gamma,isLinearKernel2);
+				learner = new PairwiseLearner(C2,gamma2,isLinearKernel2);
 			} else if (task == 3) {
-				learner = new PairwiseLearner(isLinearKernel3, bm25, pagerank, smallestwindow);
+				learner = new PairwiseLearner(C3,gamma3, isLinearKernel3, bm25, pagerank, smallestwindow);
 				System.err.println("Task 3");
 				
 			} else if (task == 4) {

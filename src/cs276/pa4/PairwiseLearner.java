@@ -21,13 +21,15 @@ import weka.filters.unsupervised.attribute.Standardize;
 public class PairwiseLearner extends Learner {
 	private LibSVM model;
 
-	public PairwiseLearner(boolean isLinearKernel, boolean bm25, boolean window, boolean pageRank){
+	public PairwiseLearner(double C, double gamma,boolean isLinearKernel, boolean bm25, boolean window, boolean pageRank){
 		try{
 			model = new LibSVM();
 		} catch (Exception e){
 			e.printStackTrace();
 		}
 
+		model.setCost(C);
+		model.setGamma(gamma); // only matter for RBF kernel
 		this.usesBm25 = bm25;
 		this.usesPageRank = pageRank;
 		this.usesSmallestWindow = window;
