@@ -32,7 +32,7 @@ public class BM25Scorer extends AScorer
     double banchor=10;
 
     double k1=50;
-    double pageRankLambda=0.5;
+    double pageRankLambda=0;
     double pageRankLambdaPrime=20;
     
     //879

@@ -14,10 +14,11 @@ import weka.classifiers.Classifier;
 import weka.core.Instances;
 
 public class Learning2Rank {
-	static boolean isLinearKernel = true;
-	static boolean bm25 = false;
-	static boolean pagerank = false;
-	static boolean smallestwindow = false;
+	static boolean isLinearKernel2 = true;
+	static boolean isLinearKernel3 = false;
+	static boolean bm25 = true;
+	static boolean pagerank = true;
+	static boolean smallestwindow = true;
 	static double C = Math.pow(2,-3);
 	static double gamma = Math.pow(2,-5);
 	
@@ -29,9 +30,9 @@ public class Learning2Rank {
  		if (task == 1) {
 			learner = new PointwiseLearner(false, false, false);
 		} else if (task == 2) {
-			learner = new PairwiseLearner(C,gamma,isLinearKernel);
+			learner = new PairwiseLearner(C,gamma,isLinearKernel2);
 		} else if (task == 3) {
-			learner = new PairwiseLearner(isLinearKernel, bm25, pagerank, smallestwindow);
+			learner = new PairwiseLearner(isLinearKernel3, bm25, pagerank, smallestwindow);
 			//learner = new PointwiseLearner(false, false, true);
 
 
@@ -65,9 +66,9 @@ public class Learning2Rank {
 	 		if (task == 1) {
 				learner = new PointwiseLearner(false, false, false);
 			} else if (task == 2) {
-				learner = new PairwiseLearner(C,gamma,isLinearKernel);
+				learner = new PairwiseLearner(C,gamma,isLinearKernel2);
 			} else if (task == 3) {
-				learner = new PairwiseLearner(isLinearKernel, bm25, pagerank, smallestwindow);
+				learner = new PairwiseLearner(isLinearKernel3, bm25, pagerank, smallestwindow);
 				System.err.println("Task 3");
 				
 			} else if (task == 4) {
