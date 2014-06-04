@@ -15,14 +15,14 @@ import weka.core.Instances;
 
 public class Learning2Rank {
 	static boolean isLinearKernel2 = true;
-	static boolean isLinearKernel3 = false;
+	static boolean isLinearKernel3 = true;
 	static boolean bm25 = true;
 	static boolean pagerank = true;
-	static boolean smallestwindow = false;
+	static boolean smallestwindow = true;
 	static double C2 = Math.pow(2,-3);
 	static double gamma2 = Math.pow(2,-5);
 	static double C3 = Math.pow(2,-3);
-	static double gamma3 = Math.pow(2,-5);
+	static double gamma3 = Math.pow(2,-7);
 	
 	public static Classifier train(String train_data_file, String train_rel_file, int task, Map<String,Double> idfs) {
 	    System.err.println("## Training with feature_file =" + train_data_file + ", rel_file = " + train_rel_file + " ... \n");
