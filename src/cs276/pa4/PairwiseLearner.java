@@ -247,6 +247,7 @@ public class PairwiseLearner extends Learner {
 			Map<String, Double> queryVec = getQueryVector(query, idfs);
 			for (Document doc : testData.get(query)) {
 				Map<String,Map<String,Double>> tfs = doc.getTermFreqs();
+				normalizeTFs(tfs, doc, query);
 				double[] instance = new double[features.numAttributes()];
 				int i = 0;
 				for (String type : TFTYPES) {
